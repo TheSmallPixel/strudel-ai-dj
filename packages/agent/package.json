@@ -12,5 +12,14 @@
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "lint": "echo 'lint placeholder for @strudel-ai-dj/agent'",
     "test": "echo 'no tests yet'"
+  },
+  "dependencies": {
+    "@anthropic-ai/claude-agent-sdk": "^0.1.0",
+    "@strudel-ai-dj/bridge": "workspace:*",
+    "@strudel-ai-dj/dj-core": "workspace:*",
+    "@strudel-ai-dj/scheduler": "workspace:*",
+    "@strudel-ai-dj/provider-spotify": "workspace:*",
+    "@strudel-ai-dj/provider-youtube": "workspace:*",
+    "@strudel-ai-dj/provider-generic": "workspace:*"
   }
 }
