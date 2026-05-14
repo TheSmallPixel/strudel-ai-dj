@@ -201,11 +201,21 @@ audio persisted to disk by the app**:
 - **Acceptance:** chat with the agent in the app; agent registers
   "in 16 bars write a new hi-hat layer" and it fires on the bar.
 
-### M5 — DJ primitives
+### M5 — DJ primitives + Visuals
 - `dj.transition`, `dj.layer_in`, `dj.drop`, `dj.queue`
 - Composed from M1–M4 primitives, internally emit lower-level tool calls
-- **Acceptance:** "transition to a darker key over 16 bars" produces a
-  recognizable, bar-aligned transition.
+- **Visuals direction tools:** `visuals.set_style(description)`,
+  `visuals.set_reference_image(image_id)`. Chat panel accepts
+  drag-dropped images, pins them as visual references the agent re-reads
+  via vision each tick.
+- Phase entries in the Set Plan gain `visual_mood`. Agent generates it
+  alongside audio targets at open ceremony.
+- Agent's system prompt gains the visual-vocabulary section (Strudel
+  visualizers + Hydra primitives + how to drive them from audio features).
+- **Acceptance:** "transition to a darker key over 16 bars, visuals more
+  liquid" produces a recognizable bar-aligned transition with shifted
+  visual style; dropping an image into chat changes future patterns'
+  palette/motion.
 
 ### M6 — Night mode (the autonomous agent)
 - `night.start(duration, vibe, constraints)` — see Agent Logic below
@@ -220,6 +230,56 @@ audio persisted to disk by the app**:
 - Visualizer driven by transport + features
 - Record Strudel-only stem to disk (synthesis output, never input audio)
 - More providers: SoundCloud, Bandcamp, Apple Music, Tidal
+
+## I/O channels (complete reference)
+
+### Inputs to the agent (every tick's `TickContext`)
+
+| Field             | Source                              | Cadence       |
+|-------------------|-------------------------------------|---------------|
+| `set_plan`        | persistent state                    | always        |
+| `current_phase`   | persistent state                    | always        |
+| `vibe_journal`    | persistent state (last N entries)   | always        |
+| `bookmarks`       | persistent state                    | always        |
+| `transport`       | scheduler bar clock                 | every tick    |
+| `pattern_code`    | `get_state`                         | every tick    |
+| `introspect`      | `strudel.introspect(bars)`          | every tick    |
+| `audio.strudel`   | sidechain tap, numeric features     | every tick    |
+| `audio.system`    | loopback, numeric features          | every tick    |
+| `audio.external`  | derived (system − strudel)          | every tick    |
+| `spectrogram`     | `audio.spectrogram(stream, secs)`   | on demand     |
+| `provider.*`      | optional provider plugin            | when connected|
+| `chat_queue`      | user typed messages                 | async, drained|
+| `feedback_queue`  | 👍 / 👎 reactions with timestamps   | async, drained|
+| `request_queue`   | drag-drop track requests            | async, drained|
+| `visualStyle`     | persistent state                    | always        |
+| `visualReferences`| pinned image ids (Claude vision)    | always        |
+| `tick_reason`     | scheduler event that woke this tick | per tick      |
+
+### Outputs from the agent (tool calls)
+
+| Group       | Tools                                                            |
+|-------------|------------------------------------------------------------------|
+| Audio       | `evaluate_strudel`, `set_pattern_slot`, `set_tempo`, `hush`/`stop`|
+| DJ          | `dj.transition`, `dj.layer_in`, `dj.drop`, `dj.queue`            |
+| Visuals     | `visuals.set_style`, `visuals.set_reference_image`               |
+| Scheduling  | `schedule.in_bars`, `at_bar`, `in_minutes`, `on_event`,          |
+|             | `schedule.list`, `schedule.cancel`                               |
+| State       | `night.set_phase`, `night.revise_plan`, `night.bookmark`,        |
+|             | `night.explain_last`                                             |
+| Provider    | `provider.play`, `provider.pause`, `provider.seek`,              |
+|             | `provider.search`, `provider.now_playing`, `provider.analysis`   |
+| Introspect  | `strudel.introspect`, `audio.features`, `audio.spectrogram`,     |
+|             | `provider.list`                                                  |
+| Chat        | every agent reply emits text rendered in the chat panel          |
+
+### Why this matters
+
+A single `evaluate_strudel(code)` call already carries **sound + visuals
+together** because Strudel patterns can embed `.scope()`, `.pianoroll()`,
+`hydra(...)`, etc. The Visuals tool group is for *direction*, not for
+*emission* — the agent uses `visuals.set_style` and pinned reference
+images to inform what its next `evaluate_strudel` will draw.
 
 ## Feedback channels (the chat panel UX)
 
@@ -270,6 +330,20 @@ input (push-to-talk → STT), once the core loop is proven.
   the vibe-journal entry for that decision (reason + state snapshot).
 - `night.explain_last()` is the equivalent tool, also usable from chat
   ("why?" returns the reasoning for the last decision).
+
+### Visual reference (drag-drop images)
+- User drags an image (album art, screenshot, photo, abstract piece)
+  into the chat panel. The image is pinned to the session and added to
+  `visualReferences` in the agent's tick context.
+- Claude has vision; the agent re-reads the pinned image when writing
+  the next pattern and steers its visuals toward it.
+- Tool: `visuals.set_reference_image(image_id)` — pin/replace the
+  active reference.
+- Tool: `visuals.set_style(description)` — free-text style direction,
+  persists across patterns until changed.
+- Visual style targets also live per-phase in the Set Plan
+  (`phase.visual_mood`), generated alongside audio targets at open
+  ceremony.
 
 ## Agent logic for the night
 
@@ -346,10 +420,12 @@ async function tick(reason: string, ctx: TickContext) {
     transport:      getTransport(),         // bar, beat, set_elapsed
     strudel:        getCurrentPattern(),
     introspect:     strudelIntrospect(8),   // events scheduled next 8 bars
-    audioStrudel:   getAudioFeatures("strudel"),   // what I'm making
-    audioSystem:    getAudioFeatures("system"),    // everything mixed
-    audioExternal:  getAudioFeatures("external"),  // system - strudel
-    provider:       getNowPlaying(),        // optional metadata
+    audioStrudel:    getAudioFeatures("strudel"),  // what I'm making
+    audioSystem:     getAudioFeatures("system"),   // everything mixed
+    audioExternal:   getAudioFeatures("external"), // system - strudel
+    provider:        getNowPlaying(),        // optional metadata
+    visualStyle:     getVisualStyle(),       // current style string
+    visualReferences: getVisualReferences(), // pinned image ids
     energyRecent:   getEnergyHistory(30_000),
     vibeJournal:    getVibeJournal(20),     // last 20 decisions
   };
@@ -367,6 +443,7 @@ async function tick(reason: string, ctx: TickContext) {
 
 #### 3. System prompt — encodes DJ craft
 
+Audio craft:
 - Never change pattern mid-phrase. Phrase boundary = current bar mod
   {8, 16, 32} == 0 depending on phase intensity.
 - Move energy gradually. No more than ±10 BPM step without an explicit
@@ -377,6 +454,17 @@ async function tick(reason: string, ctx: TickContext) {
 - Drops earn their place. Build for ≥32 bars before any drop.
 - Sync, then improvise. If provider metadata is available, lock to its
   beat grid before improvising on top.
+
+Visual craft (every `evaluate_strudel` call can include visuals):
+- Strudel visualizers: `.scope({color, thickness})`, `.pianoroll()`,
+  `.spiral()`, `.punchcard()`, `.markcss(...)`.
+- Hydra blocks: `hydra(\`osc(60,0.1,1.5).modulate(noise(3)).out()\`)`
+  for richer visual environments.
+- Drive Hydra inputs from audio features for reactivity
+  (`audio.features("strudel").rms` as modulation index).
+- Honor `visualStyle` text and `visualReferences` images in the tick
+  context. Match the pinned reference's palette / texture / motion.
+- Visual changes also obey phrase boundaries — don't redraw mid-bar.
 
 #### 4. Event-driven callbacks (what wakes the agent)
 
@@ -456,10 +544,11 @@ regardless of mode.
 | Scheduler   | `schedule.in_bars`, `schedule.at_bar`, `schedule.in_minutes`,    |
 |             | `schedule.on_event`, `schedule.list`, `schedule.cancel`          |
 | DJ          | `dj.transition`, `dj.layer_in`, `dj.drop`, `dj.queue`            |
+| Visuals     | `visuals.set_style`, `visuals.set_reference_image`               |
 | Night       | `night.start`, `night.stop`, `night.set_phase`,                  |
 |             | `night.vibe_journal`, `night.revise_plan`                        |
 | Requests    | `night.request_track`, `night.style_feedback`                    |
-| Feedback    | `feedback.signal` (up/down/more/less)                            |
+| Feedback    | `feedback.signal` (up/down)                                      |
 | Memory      | `night.bookmark`, `night.recall`, `night.explain_last`           |
 
 ## Legal posture (`docs/LEGAL.md`)
