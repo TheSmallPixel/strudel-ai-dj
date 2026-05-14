@@ -18,12 +18,18 @@
     "typecheck": "pnpm -r --filter \"./packages/**\" typecheck",
     "lint": "pnpm -r --filter \"./packages/**\" lint",
     "test": "pnpm -r --filter \"./packages/**\" test",
-    "format": "prettier --write \"packages/**/*.{ts,tsx,js,json,md}\" \"*.{json,md}\"",
-    "format:check": "prettier --check \"packages/**/*.{ts,tsx,js,json,md}\" \"*.{json,md}\""
+    "format": "prettier --write \"packages/**/*.{ts,tsx,js,json,md}\" \"apps/dj-console/**/*.{ts,tsx,js,json,md}\" \"*.{json,md}\"",
+    "format:check": "prettier --check \"packages/**/*.{ts,tsx,js,json,md}\" \"apps/dj-console/**/*.{ts,tsx,js,json,md}\" \"*.{json,md}\"",
+    "dev:bridge": "tsx watch packages/bridge/src/bin.ts",
+    "dev:mcp": "tsx watch packages/mcp-server/src/bin.ts",
+    "dev:console": "pnpm --filter @strudel-ai-dj/dj-console dev",
+    "dev": "concurrently -n bridge,mcp,console -c blue,magenta,green \"pnpm dev:bridge\" \"pnpm dev:mcp\" \"pnpm dev:console\""
   },
   "devDependencies": {
     "@types/node": "^20.14.0",
+    "concurrently": "^9.0.0",
     "prettier": "^3.3.0",
+    "tsx": "^4.19.0",
     "typescript": "^5.5.0"
   }
 }

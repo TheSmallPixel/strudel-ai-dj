@@ -1,0 +1,9 @@
+export const BRIDGE_DEFAULT_PORT = 7777;
+export const SPOTIFY_OAUTH_CALLBACK_PORT = 7878;
+export const DEFAULT_BPM = 120;
+export const DEFAULT_BEATS_PER_BAR = 4;
+export const FEATURE_FRAME_HZ = 50;
+export const SPECTROGRAM_DEFAULT_SECONDS = 8;
+export const SPECTROGRAM_MEL_BINS = 64;
+export const VIBE_JOURNAL_MAX_ENTRIES = 200;
+export const RECENT_DECISIONS_PER_TICK = 20;

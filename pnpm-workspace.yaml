@@ -1,4 +1,6 @@
 packages:
   - "packages/*"
   - "packages/providers/*"
-  - "apps/*"
+  - "apps/dj-console"
+  # apps/strudel-dj is the upstream Strudel monorepo (own workspace).
+  # Use it via `pnpm --dir apps/strudel-dj <cmd>` or its own scripts.

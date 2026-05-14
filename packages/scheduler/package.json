@@ -12,5 +12,8 @@
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "lint": "echo 'lint placeholder for @strudel-ai-dj/scheduler'",
     "test": "echo 'no tests yet'"
+  },
+  "dependencies": {
+    "@strudel-ai-dj/dj-core": "workspace:*"
   }
 }

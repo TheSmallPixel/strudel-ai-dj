@@ -13,7 +13,17 @@
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",
+    "start": "node dist/bin.js",
     "lint": "echo 'lint placeholder for @strudel-ai-dj/mcp-server'",
     "test": "echo 'no tests yet'"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.0",
+    "@strudel-ai-dj/dj-core": "workspace:*",
+    "ws": "^8.18.0",
+    "zod": "^3.23.0"
+  },
+  "devDependencies": {
+    "@types/ws": "^8.5.10"
   }
 }
