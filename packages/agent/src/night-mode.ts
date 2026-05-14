@@ -69,7 +69,7 @@ export class NightMode {
       });
 
       const plan = this.opts.bridge.state.setPlan;
-      if (plan && plan.setPlanElapsedAtUpdate === undefined) {
+      if (plan) {
         const elapsedMin = ctx.transport.elapsedMs / 60_000;
         const idx = selectPhaseForElapsed(plan, elapsedMin);
         if (idx !== plan.currentPhaseIndex) plan.currentPhaseIndex = idx;
@@ -94,8 +94,3 @@ export class NightMode {
   }
 }
 
-declare module '@strudel-ai-dj/dj-core' {
-  interface SetPlan {
-    setPlanElapsedAtUpdate?: number;
-  }
-}

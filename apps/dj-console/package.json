@@ -1,0 +1,29 @@
+{
+  "name": "@strudel-ai-dj/dj-console",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Browser UI: Strudel REPL + chat panel + audio capture + drag-drop track/image requests.",
+  "license": "AGPL-3.0-or-later",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -p tsconfig.json && vite build",
+    "preview": "vite preview --port 5173",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "lint": "echo 'lint placeholder for dj-console'",
+    "test": "echo 'no tests yet'"
+  },
+  "dependencies": {
+    "@strudel-ai-dj/audio-input": "workspace:*",
+    "@strudel-ai-dj/dj-core": "workspace:*",
+    "@strudel/web": "^1.1.0",
+    "react": "^18.3.0",
+    "react-dom": "^18.3.0"
+  },
+  "devDependencies": {
+    "@types/react": "^18.3.0",
+    "@types/react-dom": "^18.3.0",
+    "@vitejs/plugin-react": "^4.3.0",
+    "vite": "^5.4.0"
+  }
+}
