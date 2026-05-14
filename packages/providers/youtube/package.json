@@ -1,0 +1,16 @@
+{
+  "name": "@strudel-ai-dj/provider-youtube",
+  "version": "0.0.0",
+  "private": true,
+  "description": "YouTube provider: Data API + best-effort title parsing for now-playing metadata.",
+  "license": "AGPL-3.0-or-later",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "lint": "echo 'lint placeholder for @strudel-ai-dj/provider-youtube'",
+    "test": "echo 'no tests yet'"
+  }
+}

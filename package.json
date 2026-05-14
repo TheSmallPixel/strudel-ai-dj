@@ -1,0 +1,29 @@
+{
+  "name": "strudel-ai-dj",
+  "version": "0.0.0",
+  "private": true,
+  "description": "AI-controllable Strudel DJ via MCP + Claude Agent SDK",
+  "license": "AGPL-3.0-or-later",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/TheSmallPixel/strudel-ai-dj.git"
+  },
+  "packageManager": "pnpm@9.12.0",
+  "engines": {
+    "node": ">=20.0.0",
+    "pnpm": ">=9.0.0"
+  },
+  "scripts": {
+    "build": "pnpm -r --filter \"./packages/**\" build",
+    "typecheck": "pnpm -r --filter \"./packages/**\" typecheck",
+    "lint": "pnpm -r --filter \"./packages/**\" lint",
+    "test": "pnpm -r --filter \"./packages/**\" test",
+    "format": "prettier --write \"packages/**/*.{ts,tsx,js,json,md}\" \"*.{json,md}\"",
+    "format:check": "prettier --check \"packages/**/*.{ts,tsx,js,json,md}\" \"*.{json,md}\""
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.0",
+    "prettier": "^3.3.0",
+    "typescript": "^5.5.0"
+  }
+}
