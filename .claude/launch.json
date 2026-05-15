@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "dj-console",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": ["dev:noagent"],
+      "port": 5173
+    }
+  ]
+}

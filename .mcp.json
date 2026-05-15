@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "strudel-ai-dj": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["tsx", "packages/mcp-server/src/bin.ts"]
+    }
+  }
+}

@@ -1,6 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useBridge } from '../bridge/BridgeProvider.js';
-import { startAudioCapture, type CaptureHandle } from '../audio/captureStrudel.js';
+
+// Module-level snapshot of the current slot map so AudioPanel can answer
+// pattern.slots_request without crossing React component boundaries.
+let currentSlots: Map<string, string> = new Map();
+export function getCurrentSlots(): { name: string; code: string }[] {
+  return Array.from(currentSlots.entries()).map(([name, code]) => ({ name, code }));
+}
 
 declare global {
   interface Window {
@@ -9,6 +15,7 @@ declare global {
       evaluate?: (code: string) => Promise<void> | void;
       hush?: () => void;
       setCps?: (cps: number) => void;
+      samples?: (src: unknown) => Promise<void> | void;
       audioContext?: AudioContext;
     };
   }
@@ -20,7 +27,31 @@ export function StrudelPanel() {
     `// Welcome to Strudel AI DJ. Type a pattern and press Cmd/Ctrl+Enter, or let the agent take over.\nstack(\n  s("bd*4"),\n  s("hh*8").gain(0.5)\n).cpm(120)`,
   );
   const [status, setStatus] = useState<'idle' | 'loading' | 'ready' | 'error'>('idle');
-  const captureRef = useRef<CaptureHandle | null>(null);
+  // Named-slot composition. Keys preserve insertion order in JS Maps, which
+  // gives the agent a stable layer ordering for stack().
+  const slotsRef = useRef<Map<string, string>>(new Map());
+
+  const composeFromSlots = useCallback((): string | null => {
+    const exprs = Array.from(slotsRef.current.values()).filter((s) => s.trim().length > 0);
+    if (exprs.length === 0) return null;
+    if (exprs.length === 1) return exprs[0]!;
+    return `stack(\n  ${exprs.join(',\n  ')}\n)`;
+  }, []);
+
+  const recompose = useCallback(async () => {
+    const composed = composeFromSlots();
+    if (!composed) {
+      window.strudel?.hush?.();
+      setCode('');
+      return;
+    }
+    setCode(composed);
+    try {
+      await window.strudel?.evaluate?.(composed);
+    } catch (e) {
+      console.error('Recompose eval error', e);
+    }
+  }, [composeFromSlots]);
 
   useEffect(() => {
     let cancelled = false;
@@ -29,17 +60,27 @@ export function StrudelPanel() {
       try {
         const mod = (await import(/* @vite-ignore */ '@strudel/web')) as Record<string, unknown>;
         if (cancelled) return;
-        const initStrudel = mod['initStrudel'] as ((opts?: unknown) => Promise<void> | void) | undefined;
+        const initStrudel = mod['initStrudel'] as
+          | ((opts?: { prebake?: () => Promise<void> | void }) => Promise<void> | void)
+          | undefined;
         const evaluate = mod['evaluate'] as ((code: string) => Promise<void> | void) | undefined;
         const hush = mod['hush'] as (() => void) | undefined;
         const setCps = mod['setCps'] as ((cps: number) => void) | undefined;
+        const samples = mod['samples'] as ((src: string) => Promise<void> | void) | undefined;
+        const getAudioContext = mod['getAudioContext'] as (() => AudioContext) | undefined;
         if (initStrudel) {
-          await initStrudel();
+          await initStrudel({
+            prebake: async () => {
+              await samples?.('github:tidalcycles/dirt-samples');
+            },
+          });
           window.strudel = {
             ...(initStrudel !== undefined ? { initStrudel } : {}),
             ...(evaluate !== undefined ? { evaluate } : {}),
             ...(hush !== undefined ? { hush } : {}),
             ...(setCps !== undefined ? { setCps } : {}),
+            ...(samples !== undefined ? { samples } : {}),
+            ...(getAudioContext !== undefined ? { audioContext: getAudioContext() } : {}),
           };
           setStatus('ready');
         } else {
@@ -58,28 +99,36 @@ export function StrudelPanel() {
   useEffect(() => {
     const off = bridge.on((msg) => {
       if (msg.type === 'pattern.evaluate') {
+        // Full replace — wipes the slot map so subsequent slot edits start fresh.
+        slotsRef.current.clear();
+        currentSlots = new Map();
         setCode(msg.code);
         void window.strudel?.evaluate?.(msg.code);
+      } else if (msg.type === 'pattern.set_slot') {
+        // Layer edit — most expressions land here for smooth evolution.
+        if (msg.code.trim().length === 0) {
+          slotsRef.current.delete(msg.slot);
+        } else {
+          slotsRef.current.set(msg.slot, msg.code);
+        }
+        currentSlots = new Map(slotsRef.current);
+        void recompose();
       } else if (msg.type === 'pattern.hush' || msg.type === 'panic') {
+        slotsRef.current.clear();
+        currentSlots = new Map();
         window.strudel?.hush?.();
       } else if (msg.type === 'pattern.set_tempo') {
         window.strudel?.setCps?.(msg.bpm / 60 / 4);
       }
     });
     return off;
-  }, [bridge]);
+  }, [bridge, recompose]);
 
   const evaluate = useCallback(async () => {
     if (!window.strudel?.evaluate) return;
     try {
       await window.strudel.evaluate(code);
       bridge.send({ type: 'pattern.evaluate', code });
-      const ctx = window.strudel.audioContext;
-      if (ctx && !captureRef.current) {
-        captureRef.current = await startAudioCapture(ctx, (features) => {
-          bridge.send({ type: 'audio.features', features });
-        });
-      }
     } catch (e) {
       console.error('Eval error', e);
     }

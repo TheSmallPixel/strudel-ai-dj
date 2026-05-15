@@ -18,19 +18,46 @@ export function ChatPanel() {
   }, [bridge]);
 
   useEffect(() => {
-    scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' });
+    const el = scrollRef.current;
+    if (!el) return;
+    // Defer one frame so the new message has laid out before we measure scrollHeight.
+    const id = requestAnimationFrame(() => {
+      el.scrollTop = el.scrollHeight;
+    });
+    return () => cancelAnimationFrame(id);
   }, [messages]);
 
   const submit = () => {
-    if (!text.trim()) return;
+    const trimmed = text.trim();
+    if (!trimmed) return;
     const msg: ChatMessage = {
       id: `user_${Date.now()}`,
       timestampMs: Date.now(),
       role: 'user',
-      text: text.trim(),
+      text: trimmed,
     };
     setMessages((prev) => [...prev, msg]);
     bridge.send({ type: 'chat.message', message: msg });
+
+    // If the user pasted a Spotify/YouTube/SoundCloud/Bandcamp URL anywhere in
+    // their text, also emit a track.request so the agent reacts the same way it
+    // does when a URL is drag-dropped.
+    const urlMatch = trimmed.match(
+      /https?:\/\/(?:[\w-]+\.)?(?:spotify|youtube|youtu\.be|soundcloud|bandcamp)\.com\/[^\s]+/i,
+    );
+    if (urlMatch) {
+      bridge.send({
+        type: 'track.request',
+        request: {
+          id: `req_${Date.now()}`,
+          timestampMs: Date.now(),
+          uri: urlMatch[0],
+          when: 'next_phase',
+          intent: 'play_through',
+        },
+      });
+    }
+
     setText('');
   };
 
@@ -86,7 +113,7 @@ export function ChatPanel() {
       >
         chat — drop a URL or image to send to the agent
       </div>
-      <div ref={scrollRef} style={{ flex: 1, overflow: 'auto', padding: 12 }}>
+      <div ref={scrollRef} style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: 12 }}>
         {messages.length === 0 ? (
           <div style={{ opacity: 0.4, fontSize: 13 }}>
             empty. Type a message to the agent or wait for the agent to greet.

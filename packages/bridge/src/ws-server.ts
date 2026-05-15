@@ -115,6 +115,41 @@ export class BridgeServer {
       case 'provider.pause':
       case 'provider.seek':
       case 'panic':
+      case 'sample.record_request':
+      case 'sample.list_request':
+        // Broadcast so the librespot host (controller role) AND the browser
+        // (console role) both see it. Each side handles only the streams it
+        // owns: librespot host = 'external', browser = 'system'/'strudel'.
+        this.broadcast(msg, client.id);
+        break;
+      case 'sample.record_result':
+      case 'sample.list_response':
+      case 'spotify.device_ready':
+        this.sendToRole('controller', msg);
+        // Also forward record_result to console so it can register the sample
+        // with Strudel when wavUrl is present.
+        if (msg.type === 'sample.record_result') this.sendToRole('console', msg);
+        break;
+      case 'spotify.token_request':
+        this.sendToRole('controller', msg);
+        break;
+      case 'spotify.token_response':
+        this.sendToRole('console', msg);
+        break;
+      case 'strudel.log_request':
+      case 'pattern.slots_request':
+        this.sendToRole('console', msg);
+        break;
+      case 'strudel.log_response':
+      case 'pattern.slots_response':
+        this.sendToRole('controller', msg);
+        break;
+      case 'service.restart_request':
+        // Browser → librespot-host / agent (both are controllers). Each picks
+        // the request that targets it.
+        this.sendToRole('controller', msg);
+        break;
+      case 'service.restart_result':
         this.sendToRole('console', msg);
         break;
       case 'pattern.introspect.response':

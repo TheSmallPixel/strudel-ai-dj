@@ -3,6 +3,8 @@ import type { AudioFeatures } from '@strudel-ai-dj/dj-core';
 
 export interface CaptureHandle {
   stop(): void;
+  pipeline: BrowserAudioPipeline;
+  sampleRate: number;
 }
 
 /**
@@ -47,6 +49,8 @@ export async function startSystemCapture(
   node.connect(silent).connect(ctx.destination);
 
   return {
+    pipeline,
+    sampleRate: ctx.sampleRate,
     stop() {
       source.disconnect();
       node.disconnect();

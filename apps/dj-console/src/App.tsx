@@ -31,10 +31,24 @@ function Layout() {
   });
 
   return (
-    <div style={{ display: 'grid', gridTemplateRows: '40px 1fr', height: '100vh' }}>
+    <div style={{ display: 'grid', gridTemplateRows: '40px minmax(0, 1fr)', height: '100vh' }}>
       <TransportBar connected={connected} />
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 380px', overflow: 'hidden' }}>
-        <div style={{ display: 'grid', gridTemplateRows: '1fr 200px', borderRight: '1px solid #1a1a22' }}>
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: '1fr 380px',
+          gridTemplateRows: 'minmax(0, 1fr)',
+          overflow: 'hidden',
+        }}
+      >
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateRows: 'minmax(0, 1fr) 200px',
+            borderRight: '1px solid #1a1a22',
+            minHeight: 0,
+          }}
+        >
           <StrudelPanel />
           <AudioPanel />
         </div>

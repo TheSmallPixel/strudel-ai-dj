@@ -45,9 +45,13 @@ export function BridgeProvider({ children }: { children: ReactNode }) {
         for (const h of handlersRef.current) h(msg);
       };
       ws.onclose = () => {
-        for (const h of statusRef.current) h(false);
-        wsRef.current = null;
-        if (!cancelled) reconnectTimer = setTimeout(connect, 1500);
+        if (wsRef.current === ws) {
+          wsRef.current = null;
+          for (const h of statusRef.current) h(false);
+        }
+        if (!cancelled && wsRef.current === null) {
+          reconnectTimer = setTimeout(connect, 1500);
+        }
       };
       ws.onerror = () => {
         ws.close();

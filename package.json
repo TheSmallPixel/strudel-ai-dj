@@ -22,8 +22,11 @@
     "format:check": "prettier --check \"packages/**/*.{ts,tsx,js,json,md}\" \"apps/dj-console/**/*.{ts,tsx,js,json,md}\" \"*.{json,md}\"",
     "dev:bridge": "tsx watch packages/bridge/src/bin.ts",
     "dev:mcp": "tsx watch packages/mcp-server/src/bin.ts",
+    "dev:agent": "tsx packages/agent/src/chat-bin.ts",
     "dev:console": "pnpm --filter @strudel-ai-dj/dj-console dev",
-    "dev": "concurrently -n bridge,mcp,console -c blue,magenta,green \"pnpm dev:bridge\" \"pnpm dev:mcp\" \"pnpm dev:console\""
+    "dev:librespot": "tsx packages/agent/src/librespot-host.ts",
+    "dev": "concurrently -n bridge,mcp,agent,console -c blue,magenta,yellow,green \"pnpm dev:bridge\" \"pnpm dev:mcp\" \"pnpm dev:agent\" \"pnpm dev:console\"",
+    "dev:noagent": "concurrently -n bridge,mcp,console -c blue,magenta,green \"pnpm dev:bridge\" \"pnpm dev:mcp\" \"pnpm dev:console\""
   },
   "devDependencies": {
     "@types/node": "^20.14.0",

@@ -110,6 +110,23 @@ export function makeTools(bridge: BridgeClient): ToolDefinition[] {
       },
     },
     {
+      name: 'strudel_log',
+      description:
+        'Return a summary of recent Strudel console output (eval results, sampler loads, getTrigger errors). Call after any slot edit to confirm sounds loaded and no errors occurred.',
+      inputSchema: z.object({
+        sinceMs: z.number().optional().describe('Only return entries after this Unix timestamp (ms). Omit for all recent entries.'),
+        limit: z.number().int().min(1).max(200).optional().describe('Maximum number of log entries to return (default 40).'),
+      }),
+      handler: async ({ sinceMs, limit }) => {
+        return await bridge.request(
+          { type: 'strudel.log_request', requestId: `log_${Date.now()}`, sinceMs, limit },
+          (m): m is BridgeMessage & { type: 'strudel.log_response' } =>
+            m.type === 'strudel.log_response',
+          5000,
+        );
+      },
+    },
+    {
       name: 'schedule_in_bars',
       description:
         'Schedule a callback to fire in N bars. Used by the agent to ask itself to revisit a decision on a phrase boundary.',

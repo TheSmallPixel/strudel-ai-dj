@@ -122,6 +122,72 @@ export class SpotifyClient {
     const q = new URLSearchParams({ q: query, type: 'track', limit: String(limit) });
     return this.api(`/search?${q.toString()}`);
   }
+
+  trackInfo(trackId: string): Promise<SpotifyTrackInfo> {
+    return this.api(`/tracks/${trackId}`);
+  }
+
+  devices(): Promise<SpotifyDevicesResponse> {
+    return this.api('/me/player/devices');
+  }
+
+  async play(opts: { uri?: string; uris?: string[]; contextUri?: string; positionMs?: number; deviceId?: string } = {}): Promise<void> {
+    const body: Record<string, unknown> = {};
+    if (opts.uris) body['uris'] = opts.uris;
+    else if (opts.uri) body['uris'] = [opts.uri];
+    if (opts.contextUri) body['context_uri'] = opts.contextUri;
+    if (opts.positionMs !== undefined) body['position_ms'] = opts.positionMs;
+    const path = opts.deviceId ? `/me/player/play?device_id=${encodeURIComponent(opts.deviceId)}` : '/me/player/play';
+    await this.api<null>(path, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: Object.keys(body).length ? JSON.stringify(body) : undefined,
+    });
+  }
+
+  async pause(deviceId?: string): Promise<void> {
+    const path = deviceId ? `/me/player/pause?device_id=${encodeURIComponent(deviceId)}` : '/me/player/pause';
+    await this.api<null>(path, { method: 'PUT' });
+  }
+
+  async next(deviceId?: string): Promise<void> {
+    const path = deviceId ? `/me/player/next?device_id=${encodeURIComponent(deviceId)}` : '/me/player/next';
+    await this.api<null>(path, { method: 'POST' });
+  }
+
+  async previous(deviceId?: string): Promise<void> {
+    const path = deviceId ? `/me/player/previous?device_id=${encodeURIComponent(deviceId)}` : '/me/player/previous';
+    await this.api<null>(path, { method: 'POST' });
+  }
+
+  async queueAdd(uri: string, deviceId?: string): Promise<void> {
+    const q = new URLSearchParams({ uri });
+    if (deviceId) q.set('device_id', deviceId);
+    await this.api<null>(`/me/player/queue?${q.toString()}`, { method: 'POST' });
+  }
+
+  async transferPlayback(deviceId: string, play = false): Promise<void> {
+    await this.api<null>('/me/player', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ device_ids: [deviceId], play }),
+    });
+  }
+}
+
+export interface SpotifyDevice {
+  id: string;
+  is_active: boolean;
+  is_private_session: boolean;
+  is_restricted: boolean;
+  name: string;
+  type: string; // 'Computer', 'Smartphone', 'Speaker', ...
+  volume_percent: number;
+  supports_volume?: boolean;
+}
+
+export interface SpotifyDevicesResponse {
+  devices: SpotifyDevice[];
 }
 
 export interface SpotifyCurrentlyPlaying {
@@ -163,5 +229,25 @@ export interface SpotifySearchResult {
       artists: { name: string }[];
       album: { name: string; images: { url: string }[] };
     }[];
+  };
+}
+
+export interface SpotifyTrackInfo {
+  uri: string;
+  id: string;
+  name: string;
+  duration_ms: number;
+  explicit: boolean;
+  popularity: number;
+  preview_url: string | null;
+  external_urls: { spotify: string };
+  artists: { id: string; name: string }[];
+  album: {
+    id: string;
+    name: string;
+    release_date: string;
+    release_date_precision: string;
+    total_tracks: number;
+    images: { url: string; width: number; height: number }[];
   };
 }

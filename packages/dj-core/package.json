@@ -5,8 +5,8 @@
   "description": "Shared types, Set Plan model, energy model, DJ-level transition primitives.",
   "license": "AGPL-3.0-or-later",
   "type": "module",
-  "main": "./dist/index.js",
-  "types": "./dist/index.d.ts",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",
