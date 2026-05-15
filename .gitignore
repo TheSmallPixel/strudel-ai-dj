@@ -16,3 +16,7 @@ Thumbs.db
 .idea/
 coverage/
 .nyc_output/
+
+# librespot's persistent Connect-device auth cache — contains a reusable
+# Spotify session token. NEVER commit this directory.
+bin/librespot-cache/
